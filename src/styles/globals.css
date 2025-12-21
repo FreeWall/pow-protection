@@ -1,0 +1,87 @@
+@import 'tailwindcss';
+@config '../../tailwind.config.cjs';
+
+@theme {
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  @apply h-full;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  @apply text-text h-full bg-white text-base antialiased;
+}
+
+#__next {
+  @apply h-full;
+}
+
+.forceStroke > path,
+.forceStroke g {
+  stroke: currentColor;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  transition:
+    background-color 0s 600000s,
+    color 0s 600000s;
+}
+
+.bg-loader {
+  background: linear-gradient(90deg, #e6ebef 25%, #ffffff 50%, #e6ebef 75%);
+  background-size: 200% 100%;
+  animation: loading 1s infinite linear;
+}
+
+.dark .bg-loader {
+  background: linear-gradient(90deg, #363b40 25%, #2a2e32 50%, #363b40 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+.tooltiparrow {
+  fill: white;
+  filter: drop-shadow(0 0 3px #ced1d535);
+  clip-path: inset(0 -10px -10px -10px);
+}
+
+.backSignal,
+.backSignal2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 110px;
+  height: 110px;
+  background: theme(--color-amber-500);
+  border-radius: 50%;
+  transform: translateX(-50%) translateY(-50%) scale(1);
+  animation: backSignal 2400ms infinite;
+  pointer-events: none;
+}
+
+.backSignal2 {
+  animation-delay: 1200ms;
+}
+
+@keyframes backSignal {
+  0% {
+    transform: translateX(-50%) translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-50%) scale(30);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-50%) scale(30);
+  }
+}

@@ -1,0 +1,15 @@
+# dependencies
+/node_modules
+
+# next.js
+/_next
+/.next
+/build
+next-env.d.ts
+/.swc
+
+# local env files
+.env
+
+# vercel
+.vercel

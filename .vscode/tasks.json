@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "dev",
+      "problemMatcher": [],
+      "label": "dev",
+      "detail": "Start the application in development mode",
+      "icon": {
+        "id": "debug-console",
+        "color": "terminal.ansiCyan"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": [],
+      "label": "build",
+      "detail": "Build the application for production usage",
+      "icon": {
+        "id": "gear",
+        "color": "terminal.ansiGreen"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "start",
+      "problemMatcher": [],
+      "label": "start",
+      "detail": "Start the application for production usage",
+      "icon": {
+        "id": "play",
+        "color": "terminal.ansiGreen"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "deploy",
+      "problemMatcher": [],
+      "label": "deploy",
+      "detail": "Install, build and start the application for production usage",
+      "icon": {
+        "id": "run-all",
+        "color": "terminal.ansiMagenta"
+      }
+    }
+  ]
+}
