@@ -8,6 +8,7 @@ export interface StablePowOpts {
 export interface StablePoWResult {
   data: any;
   nonces: number[];
+  hashes: number;
 }
 
 export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promise<StablePoWResult> {
@@ -18,6 +19,7 @@ export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promis
   const jsonString = JSON.stringify(jsonData);
   const target = '0'.repeat(opts.difficulty);
   const nonces: StablePoWResult['nonces'] = [];
+  let hashes = 0;
 
   for (let i = 0; i < opts.count; i++) {
     const prefix = encoder.encode(`${jsonString}${i}`);
@@ -42,6 +44,7 @@ export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promis
       hasher.init();
       hasher.update(buffer.subarray(0, prefix.length + nonceLength));
       const hash = hasher.digest();
+      hashes++;
 
       if (hash.startsWith(target)) {
         nonces.push(nonce);
@@ -53,7 +56,7 @@ export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promis
       if (nonce % 50000 === 0) await new Promise((r) => setTimeout(r, 0));
     }
   }
-  return { data: jsonData, nonces };
+  return { data: jsonData, hashes, nonces };
 }
 
 export async function verifyStablePow(
