@@ -8,7 +8,9 @@ export interface StablePowOpts {
 export interface StablePoWResult {
   data: any;
   nonces: number[];
-  hashes: number;
+  debug: {
+    hashes: number;
+  };
 }
 
 export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promise<StablePoWResult> {
@@ -56,7 +58,7 @@ export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promis
       if (nonce % 50000 === 0) await new Promise((r) => setTimeout(r, 0));
     }
   }
-  return { data: jsonData, hashes, nonces };
+  return { data: jsonData, debug: { hashes }, nonces };
 }
 
 export async function verifyStablePow(
