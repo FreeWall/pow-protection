@@ -1,4 +1,8 @@
+import { randomBytes } from 'crypto';
 import { createSHA256 } from 'hash-wasm';
+import jwt from 'jsonwebtoken';
+
+import { tryCatch } from '@/utils/promises';
 
 export interface StablePowOpts {
   difficulty: number;
@@ -11,6 +15,25 @@ export interface StablePoWResult {
   debug: {
     hashes: number;
   };
+}
+
+export interface Challenge extends StablePowOpts {
+  nonce: string;
+}
+
+const SECRET = 'test';
+
+export function createChallenge() {
+  const challenge = {
+    difficulty: 3,
+    count: 50,
+    nonce: randomBytes(4).toString('hex'),
+  } satisfies Challenge;
+  return jwt.sign(challenge, SECRET, { expiresIn: '1m', noTimestamp: true });
+}
+
+export function verifyChallenge(challenge: string): boolean {
+  return !!tryCatch(() => jwt.verify(challenge, SECRET))[1];
 }
 
 export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promise<StablePoWResult> {
