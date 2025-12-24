@@ -51,19 +51,6 @@ export default function Index() {
     [challengeMutation.data],
   );
 
-  useEffect(() => {
-    if (!challengeMutation.data || !challengeParsed) {
-      return;
-    }
-
-    form.reset({
-      data: form.getFieldValue('data'),
-      challenge: challengeMutation.data,
-      difficulty: String(challengeParsed.difficulty),
-      count: String(challengeParsed.count),
-    });
-  }, [form, challengeMutation.data, challengeParsed]);
-
   const powMutation = useMutation({
     mutationFn: async ({ data, opts }: { data: any; opts: StablePowOpts }) => {
       const startTime = performance.now();
@@ -77,6 +64,19 @@ export default function Index() {
     },
   });
 
+  useEffect(() => {
+    if (!challengeMutation.data || !challengeParsed) {
+      return;
+    }
+
+    form.reset({
+      data: form.getFieldValue('data'),
+      challenge: challengeMutation.data,
+      difficulty: String(challengeParsed.difficulty),
+      count: String(challengeParsed.count),
+    });
+  }, [form, challengeMutation.data, challengeParsed]);
+
   return (
     <div className={cn('flex w-full flex-col gap-20 md:flex-row')}>
       <div className="w-full md:w-96">
@@ -85,7 +85,7 @@ export default function Index() {
           <div className="mb-6 space-y-6">
             <div>
               <div className="mb-2 text-sm">Raw</div>
-              <pre className="mb-2 h-16 w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
+              <pre className="mb-2 h-[66px] w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
                 {challengeMutation.data}
               </pre>
             </div>
@@ -100,7 +100,10 @@ export default function Index() {
           <div className="flex items-center gap-4">
             <Button
               type="submit"
-              onClick={() => challengeMutation.mutate()}
+              onClick={() => {
+                challengeMutation.mutate();
+                powMutation.reset();
+              }}
               disabled={challengeMutation.isPending}
             >
               Fetch challenge
@@ -113,8 +116,11 @@ export default function Index() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="w-full md:w-96">
         <div className="mb-14">
-          <h1 className="mb-4 text-xl">2. Request</h1>
+          <h1 className="mb-4 text-xl">2. Request to mine</h1>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -128,7 +134,7 @@ export default function Index() {
                   <div>
                     <div className="mb-2 text-sm">Challenge</div>
                     <TextArea
-                      className="h-24 w-full resize-none text-xs"
+                      className="field-sizing-content min-h-[66px] w-full resize-none overflow-hidden font-mono text-xs"
                       value={field.state.value}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />
@@ -140,7 +146,7 @@ export default function Index() {
                   <div>
                     <div className="mb-2 text-sm">Data</div>
                     <TextArea
-                      className="h-32 w-full resize-none text-xs"
+                      className="field-sizing-content w-full resize-none text-xs"
                       value={field.state.value}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />
@@ -216,30 +222,33 @@ export default function Index() {
             </div>
           </form>
         </div>
-      </div>
-      {powMutation.data?.result && (
-        <div className="w-full md:w-96">
-          <h1 className="mb-4 text-xl">3. Request to send</h1>
-          <div className="space-y-6">
-            <div>
-              <div className="mb-2 text-sm">Headers</div>
-              <pre className="w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
-                x-pow-challenge: {challengeMutation.data}
-                <br />
-                <br />
-                x-pow-nonces:
-                {JSON.stringify(powMutation.data.result.nonces)}
-              </pre>
-            </div>
-            <div>
-              <div className="mb-2 text-sm">Body</div>
-              <pre className="w-full rounded-md bg-gray-100 p-2 text-xs">
-                {JSON.stringify(powMutation.data.result.data, null, 2)}
-              </pre>
+        {powMutation.data?.result && (
+          <div className="mb-14">
+            <h1 className="mb-4 text-xl">3. Request to send</h1>
+            <div className="space-y-6">
+              <div>
+                <div className="mb-2 text-sm">Headers</div>
+                <pre className="w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
+                  X-Pow-Challenge:
+                  <br />
+                  {challengeMutation.data}
+                  <br />
+                  <br />
+                  X-Pow-Nonces:
+                  <br />
+                  {JSON.stringify(powMutation.data.result.nonces)}
+                </pre>
+              </div>
+              <div>
+                <div className="mb-2 text-sm">Body</div>
+                <pre className="w-full rounded-md bg-gray-100 p-2 text-xs">
+                  {JSON.stringify(powMutation.data.result.data, null, 2)}
+                </pre>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
