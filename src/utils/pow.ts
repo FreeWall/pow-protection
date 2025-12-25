@@ -21,7 +21,7 @@ export interface Challenge extends StablePowOpts {
   nonce: string;
 }
 
-const SECRET = 'test';
+const SECRET = randomBytes(64).toString('hex');
 
 export function createChallenge() {
   const challenge = {
