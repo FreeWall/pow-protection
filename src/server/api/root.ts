@@ -1,7 +1,8 @@
 import z from 'zod';
 
 import { publicProcedure, router } from './trpc';
-import { createChallenge, verifyChallenge } from '@/utils/pow';
+import { Challenge, createChallenge, verifyChallenge, verifyStablePow } from '@/utils/pow';
+import { tryCatch } from '@/utils/promises';
 
 export const trpcRouter = router({
   challenge: publicProcedure.mutation(async () => {
@@ -15,12 +16,30 @@ export const trpcRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      console.log(input.pow);
-      console.log(input.request);
-      if (!verifyChallenge(input.pow.challenge)) {
-        throw new Error('Invalid challenge');
+      const [errorChallenge, challengeData] = tryCatch(() => verifyChallenge(input.pow.challenge));
+      if (errorChallenge) {
+        throw new Error(`❌ Invalid challenge: ${errorChallenge?.message}`);
       }
-      return true;
+
+      const challenge = challengeData as Challenge;
+
+      if (
+        !verifyStablePow(
+          {
+            challenge: input.pow.challenge,
+            data: input.request,
+            nonces: input.pow.nonces,
+          },
+          {
+            difficulty: challenge.difficulty,
+            count: challenge.count,
+          },
+        )
+      ) {
+        throw new Error('❌ Invalid PoW');
+      }
+
+      return '✅ Valid';
     }),
 });
 

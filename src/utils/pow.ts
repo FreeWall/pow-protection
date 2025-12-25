@@ -1,8 +1,6 @@
-import { randomBytes } from 'crypto';
+import { hash, randomBytes } from 'crypto';
 import { createSHA256 } from 'hash-wasm';
 import jwt from 'jsonwebtoken';
-
-import { tryCatch } from '@/utils/promises';
 
 export interface StablePowOpts {
   difficulty: number;
@@ -10,9 +8,10 @@ export interface StablePowOpts {
 }
 
 export interface StablePoWResult {
+  challenge: string;
   data: any;
   nonces: number[];
-  debug: {
+  debug?: {
     hashes: number;
   };
 }
@@ -21,7 +20,7 @@ export interface Challenge extends StablePowOpts {
   nonce: string;
 }
 
-const SECRET = randomBytes(64).toString('hex');
+const SECRET = 'very-secret-string';
 
 export function createChallenge() {
   const challenge = {
@@ -32,16 +31,24 @@ export function createChallenge() {
   return jwt.sign(challenge, SECRET, { expiresIn: '1m', noTimestamp: true });
 }
 
-export function verifyChallenge(challenge: string): boolean {
-  return !!tryCatch(() => jwt.verify(challenge, SECRET))[1];
+export function verifyChallenge(challenge: string) {
+  return jwt.verify(challenge, SECRET);
 }
 
-export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promise<StablePoWResult> {
+export function parseChallenge(challenge: string): Challenge | null {
+  return jwt.decode(challenge) as Challenge;
+}
+
+export async function solveStablePow(
+  challenge: string,
+  jsonData: any,
+  opts: StablePowOpts,
+): Promise<StablePoWResult> {
   const hasher = await createSHA256();
   const encoder = new TextEncoder();
 
   // 1. Pre-encode the static part of your data
-  const jsonString = JSON.stringify(jsonData);
+  const jsonString = `${JSON.stringify(jsonData)}${challenge}`;
   const target = '0'.repeat(opts.difficulty);
   const nonces: StablePoWResult['nonces'] = [];
   let hashes = 0;
@@ -81,16 +88,11 @@ export async function solveStablePow(jsonData: any, opts: StablePowOpts): Promis
       if (nonce % 50000 === 0) await new Promise((r) => setTimeout(r, 0));
     }
   }
-  return { data: jsonData, debug: { hashes }, nonces };
+  return { challenge, data: jsonData, debug: { hashes }, nonces };
 }
 
-export async function verifyStablePow(
-  result: StablePoWResult,
-  opts: StablePowOpts,
-): Promise<boolean> {
-  const hasher = await createSHA256();
-  const encoder = new TextEncoder();
-  const jsonString = JSON.stringify(result.data);
+export function verifyStablePow(result: StablePoWResult, opts: StablePowOpts): boolean {
+  const jsonString = `${JSON.stringify(result.data)}${result.challenge}`;
   const target = '0'.repeat(opts.difficulty);
 
   if (result.nonces.length !== opts.count) {
@@ -98,11 +100,8 @@ export async function verifyStablePow(
   }
 
   for (let i = 0; i < opts.count; i++) {
-    const prefix = encoder.encode(`${jsonString}${i}${result.nonces[i]}`);
-    hasher.init();
-    hasher.update(prefix);
-    const hash = hasher.digest();
-    if (!hash.startsWith(target)) {
+    const digest = hash('sha256', `${jsonString}${i}${result.nonces[i]}`);
+    if (!digest.startsWith(target)) {
       return false;
     }
   }

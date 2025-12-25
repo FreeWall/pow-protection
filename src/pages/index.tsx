@@ -1,6 +1,5 @@
 import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
-import jwt from 'jsonwebtoken';
 import { useEffect, useMemo } from 'react';
 import { CgSpinner } from 'react-icons/cg';
 
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/Select';
 import { TextArea } from '@/components/ui/TextArea';
 import { usePowWorker } from '@/hooks/usePowSolver';
-import { Challenge, StablePowOpts } from '@/utils/pow';
+import { Challenge, StablePowOpts, parseChallenge } from '@/utils/pow';
 import { tryCatch } from '@/utils/promises';
 import { trpc } from '@/utils/trpc';
 import { cn } from '@/utils/utils';
@@ -35,7 +34,8 @@ export default function Index() {
     onSubmit: async ({ value }) => {
       const data = tryCatch(() => JSON.parse(value.data))[1] ?? value.data;
       powMutation.mutate({
-        data: data,
+        challenge: value.challenge,
+        data,
         opts: { difficulty: Number(value.difficulty), count: Number(value.count) },
       });
       requestMutation.reset();
@@ -49,14 +49,23 @@ export default function Index() {
   });
 
   const challengeParsed = useMemo(
-    () => (challengeMutation.data ? jwt.decode(challengeMutation.data) : null) as Challenge | null,
+    () =>
+      (challengeMutation.data ? parseChallenge(challengeMutation.data) : null) as Challenge | null,
     [challengeMutation.data],
   );
 
   const powMutation = useMutation({
-    mutationFn: async ({ data, opts }: { data: any; opts: StablePowOpts }) => {
+    mutationFn: async ({
+      challenge,
+      data,
+      opts,
+    }: {
+      challenge: string;
+      data: any;
+      opts: StablePowOpts;
+    }) => {
       const startTime = performance.now();
-      const result = await solvePoW(data, opts);
+      const result = await solvePoW(challenge, data, opts);
       const endTime = performance.now();
 
       return {
@@ -214,7 +223,7 @@ export default function Index() {
                 <div className="flex items-center gap-3 text-sm">
                   <div>⏱️ {powMutation.data.solveTime} ms</div>
                   <div>
-                    #️⃣ {powMutation.data.result.debug.hashes.toLocaleString(undefined, {})} hashes
+                    #️⃣ {powMutation.data.result.debug?.hashes.toLocaleString(undefined, {})} hashes
                   </div>
                 </div>
               )}
@@ -223,7 +232,7 @@ export default function Index() {
         </form>
       </div>
 
-      {powMutation.data?.result && challengeMutation.data && (
+      {powMutation.data?.result && (
         <div className="w-full md:w-96">
           <h1 className="mb-6 text-xl">3. Request to send</h1>
           <div className="space-y-6">
@@ -232,7 +241,7 @@ export default function Index() {
               <pre className="w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
                 X-Pow-Challenge:
                 <br />
-                {challengeMutation.data}
+                {powMutation.data.result.challenge}
                 <br />
                 <br />
                 X-Pow-Nonces:
@@ -253,7 +262,7 @@ export default function Index() {
                 onClick={() => {
                   requestMutation.mutate({
                     pow: {
-                      challenge: challengeMutation.data,
+                      challenge: powMutation.data.result.challenge,
                       nonces: powMutation.data.result.nonces,
                     },
                     request: powMutation.data.result.data,
@@ -278,9 +287,9 @@ export default function Index() {
           <h1 className="mb-6 text-xl">4. Response</h1>
           <div className="space-y-6">
             <div>
-              <div className="mb-2 text-sm">Raw</div>
+              <div className="mb-2 text-sm">Response</div>
               <pre className="w-full rounded-md bg-gray-100 p-2 text-xs">
-                {JSON.stringify(requestMutation.data || requestMutation.error?.message, null, 2)}
+                {requestMutation.data || requestMutation.error?.message}
               </pre>
             </div>
           </div>

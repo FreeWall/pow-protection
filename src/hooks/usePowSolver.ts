@@ -13,25 +13,28 @@ export function usePowWorker() {
     };
   }, []);
 
-  const solvePoW = useCallback((data: any, opts: StablePowOpts): Promise<StablePoWResult> => {
-    return new Promise((resolve, reject) => {
-      if (!workerRef.current) {
-        return reject(new Error('Worker not initialized'));
-      }
-
-      const messageId = (Date.now() + Math.random()).toString(36);
-
-      const listener = (event: MessageEvent) => {
-        if (event.data.id === messageId) {
-          workerRef.current?.removeEventListener('message', listener);
-          resolve(event.data.result);
+  const solvePoW = useCallback(
+    (challenge: string, data: any, opts: StablePowOpts): Promise<StablePoWResult> => {
+      return new Promise((resolve, reject) => {
+        if (!workerRef.current) {
+          return reject(new Error('Worker not initialized'));
         }
-      };
 
-      workerRef.current.addEventListener('message', listener);
-      workerRef.current.postMessage({ id: messageId, data, opts });
-    });
-  }, []);
+        const messageId = (Date.now() + Math.random()).toString(36);
+
+        const listener = (event: MessageEvent) => {
+          if (event.data.id === messageId) {
+            workerRef.current?.removeEventListener('message', listener);
+            resolve(event.data.result);
+          }
+        };
+
+        workerRef.current.addEventListener('message', listener);
+        workerRef.current.postMessage({ id: messageId, challenge, data, opts });
+      });
+    },
+    [],
+  );
 
   return { solvePoW };
 }
