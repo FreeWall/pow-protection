@@ -89,8 +89,8 @@ export default function Index() {
   }, [form, challengeMutation.data, challengeParsed]);
 
   return (
-    <div className={cn('flex w-full flex-col gap-20 md:flex-row')}>
-      <div className="w-full md:w-96">
+    <div className={cn('flex w-full flex-col gap-10 lg:flex-row 2xl:gap-20')}>
+      <div className="lg:w-96">
         <h1 className="mb-6 text-xl">1. Challenge from server</h1>
         <div className="mb-6 space-y-6">
           <div>
@@ -128,7 +128,7 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="w-full md:w-96">
+      <div className="lg:w-96">
         <h1 className="mb-6 text-xl">2. Request to mine</h1>
         <form
           onSubmit={(e) => {
@@ -233,7 +233,7 @@ export default function Index() {
       </div>
 
       {powMutation.data?.result && (
-        <div className="w-full md:w-96">
+        <div className="lg:w-96">
           <h1 className="mb-6 text-xl">3. Request to send</h1>
           <div className="space-y-6">
             <div>
@@ -283,7 +283,7 @@ export default function Index() {
       )}
 
       {(requestMutation.data || requestMutation.error) && (
-        <div className="w-full md:w-96">
+        <div className="lg:w-96">
           <h1 className="mb-6 text-xl">4. Response</h1>
           <div className="space-y-6">
             <div>

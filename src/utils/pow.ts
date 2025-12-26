@@ -1,6 +1,9 @@
 import { hash, randomBytes } from 'crypto';
 import { createSHA256 } from 'hash-wasm';
 import jwt from 'jsonwebtoken';
+import { LRUCache } from 'lru-cache';
+
+import { tryCatch } from '@/utils/promises';
 
 export interface StablePowOpts {
   difficulty: number;
@@ -21,18 +24,42 @@ export interface Challenge extends StablePowOpts {
 }
 
 const SECRET = 'very-secret-string';
+const challengeNonceLength = 4;
+const challengeExpirationInSeconds = 60;
+
+const spentChallengesCache = new LRUCache<string, boolean>({
+  maxSize: 1 * 1024 * 1024, // ~1 MB
+  sizeCalculation: (value, key) => {
+    return key.length * 2;
+  },
+});
 
 export function createChallenge() {
   const challenge = {
     difficulty: 3,
     count: 50,
-    nonce: randomBytes(4).toString('hex'),
+    nonce: randomBytes(challengeNonceLength).toString('hex'),
   } satisfies Challenge;
-  return jwt.sign(challenge, SECRET, { expiresIn: '1m', noTimestamp: true });
+  return jwt.sign(challenge, SECRET, {
+    expiresIn: challengeExpirationInSeconds,
+    noTimestamp: true,
+  });
 }
 
-export function verifyChallenge(challenge: string) {
-  return jwt.verify(challenge, SECRET);
+export function verifyChallenge(challengeInput: string): Challenge {
+  const [errorChallenge, challengeData] = tryCatch(() => jwt.verify(challengeInput, SECRET));
+  if (errorChallenge) {
+    throw new Error(errorChallenge.message);
+  }
+
+  const challenge = challengeData as Challenge;
+  if (spentChallengesCache.has(challenge.nonce)) {
+    throw new Error(`already spent`);
+  }
+
+  spentChallengesCache.set(challenge.nonce, true);
+
+  return challenge;
 }
 
 export function parseChallenge(challenge: string): Challenge | null {
