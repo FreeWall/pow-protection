@@ -6,8 +6,8 @@ import { LRUCache } from 'lru-cache';
 import { tryCatch } from '@/utils/promises';
 
 export interface StablePowOpts {
-  difficulty: number;
-  count: number;
+  d: number;
+  c: number;
 }
 
 export interface StablePoWResult {
@@ -20,11 +20,11 @@ export interface StablePoWResult {
 }
 
 export interface Challenge extends StablePowOpts {
-  nonce: string;
+  n: string;
 }
 
 const SECRET = 'very-secret-string';
-const challengeNonceLength = 4;
+const challengeNonceLength = 8;
 const challengeExpirationInSeconds = 60;
 
 const spentChallengesCache = new LRUCache<string, boolean>({
@@ -33,9 +33,9 @@ const spentChallengesCache = new LRUCache<string, boolean>({
 
 export function createChallenge() {
   const challenge = {
-    difficulty: 3,
-    count: 50,
-    nonce: randomBytes(challengeNonceLength).toString('hex'),
+    d: 12,
+    c: 50,
+    n: randomBytes(challengeNonceLength).toString('hex'),
   } satisfies Challenge;
   return jwt.sign(challenge, SECRET, {
     expiresIn: challengeExpirationInSeconds,
@@ -50,11 +50,11 @@ export function verifyChallenge(challengeInput: string): Challenge {
   }
 
   const challenge = challengeData as Challenge;
-  if (spentChallengesCache.has(challenge.nonce)) {
+  if (spentChallengesCache.has(challenge.n)) {
     throw new Error(`already spent`);
   }
 
-  spentChallengesCache.set(challenge.nonce, true);
+  spentChallengesCache.set(challenge.n, true);
 
   return challenge;
 }
@@ -72,12 +72,11 @@ export async function solveStablePow(
   const encoder = new TextEncoder();
 
   // 1. Pre-encode the static part of your data
-  const jsonString = `${JSON.stringify(jsonData)}${challenge}`;
-  const target = '0'.repeat(opts.difficulty);
+  const jsonString = `${JSON.stringify(jsonData)}.${challenge}`;
   const nonces: StablePoWResult['nonces'] = [];
   let hashes = 0;
 
-  for (let i = 0; i < opts.count; i++) {
+  for (let i = 0; i < opts.c; i++) {
     const prefix = encoder.encode(`${jsonString}${i}`);
 
     // 2. Create a buffer: [prefix bytes] + [space for nonce string]
@@ -99,10 +98,10 @@ export async function solveStablePow(
       // 4. Hash ONLY the used portion of the buffer
       hasher.init();
       hasher.update(buffer.subarray(0, prefix.length + nonceLength));
-      const hash = hasher.digest();
+      const hash = hasher.digest('binary');
       hashes++;
 
-      if (hash.startsWith(target)) {
+      if (checkLeadingZeros(hash, opts.d)) {
         nonces.push(nonce);
         break;
       }
@@ -116,16 +115,35 @@ export async function solveStablePow(
 }
 
 export function verifyStablePow(result: StablePoWResult, opts: StablePowOpts): boolean {
-  const jsonString = `${JSON.stringify(result.data)}${result.challenge}`;
-  const target = '0'.repeat(opts.difficulty);
+  const jsonString = `${JSON.stringify(result.data)}.${result.challenge}`;
 
-  if (result.nonces.length !== opts.count) {
+  if (result.nonces.length !== opts.c) {
     return false;
   }
 
-  for (let i = 0; i < opts.count; i++) {
-    const digest = hash('sha256', `${jsonString}${i}${result.nonces[i]}`);
-    if (!digest.startsWith(target)) {
+  for (let i = 0; i < opts.c; i++) {
+    const digest = hash('sha256', `${jsonString}${i}${result.nonces[i]}`, 'buffer');
+    if (!checkLeadingZeros(digest, opts.d)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function checkLeadingZeros(hash: Uint8Array, requiredBits: number): boolean {
+  const bytesToCheck = Math.floor(requiredBits / 8);
+  const remainingBits = requiredBits % 8;
+
+  for (let i = 0; i < bytesToCheck; i++) {
+    if (hash[i] !== 0) {
+      return false;
+    }
+  }
+
+  if (remainingBits > 0) {
+    const nextByte = hash[bytesToCheck]!;
+    if (nextByte >> (8 - remainingBits) !== 0) {
       return false;
     }
   }

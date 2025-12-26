@@ -36,15 +36,15 @@ export default function Index() {
       powMutation.mutate({
         challenge: value.challenge,
         data,
-        opts: { difficulty: Number(value.difficulty), count: Number(value.count) },
+        opts: { d: Number(value.difficulty), c: Number(value.count) },
       });
       requestMutation.reset();
     },
     defaultValues: {
       data: JSON.stringify(defaultData, null, 2),
       challenge: '',
-      difficulty: '3',
-      count: '20',
+      difficulty: '',
+      count: '',
     },
   });
 
@@ -83,8 +83,8 @@ export default function Index() {
     form.reset({
       data: form.getFieldValue('data'),
       challenge: challengeMutation.data,
-      difficulty: String(challengeParsed.difficulty),
-      count: String(challengeParsed.count),
+      difficulty: String(challengeParsed.d),
+      count: String(challengeParsed.c),
     });
   }, [form, challengeMutation.data, challengeParsed]);
 
@@ -175,9 +175,11 @@ export default function Index() {
                         <SelectValue placeholder="Difficulty" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="3">3 - 000...</SelectItem>
-                        <SelectItem value="4">4 - 0000...</SelectItem>
-                        <SelectItem value="5">5 - 00000...</SelectItem>
+                        <SelectItem value="12">12 bits - 000...</SelectItem>
+                        <SelectItem value="13">13 bits</SelectItem>
+                        <SelectItem value="14">14 bits</SelectItem>
+                        <SelectItem value="15">15 bits</SelectItem>
+                        <SelectItem value="16">16 bits - 0000...</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

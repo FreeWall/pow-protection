@@ -34,7 +34,7 @@ export const trpcRouter = router({
         throw new Error('❌ Invalid PoW');
       }
 
-      return '✅ Valid';
+      return '✅ Valid\n' + JSON.stringify(input.request, null, 2);
     }),
 });
 
