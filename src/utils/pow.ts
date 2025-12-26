@@ -28,10 +28,7 @@ const challengeNonceLength = 4;
 const challengeExpirationInSeconds = 60;
 
 const spentChallengesCache = new LRUCache<string, boolean>({
-  maxSize: 1 * 1024 * 1024, // ~1 MB
-  sizeCalculation: (value, key) => {
-    return key.length * 2;
-  },
+  max: 1000,
 });
 
 export function createChallenge() {
@@ -112,7 +109,7 @@ export async function solveStablePow(
       nonce++;
 
       // Safety: periodically yield every 50k iterations
-      if (nonce % 50000 === 0) await new Promise((r) => setTimeout(r, 0));
+      if (nonce % 50_000 === 0) await new Promise((r) => setTimeout(r, 0));
     }
   }
   return { challenge, data: jsonData, debug: { hashes }, nonces };
