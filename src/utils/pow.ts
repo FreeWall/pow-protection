@@ -12,7 +12,6 @@ export interface StablePowOpts {
 
 export interface StablePoWResult {
   challenge: string;
-  data: any;
   nonces: number[];
   debug?: {
     hashes: number;
@@ -65,19 +64,17 @@ export function parseChallenge(challenge: string): Challenge | null {
 
 export async function solveStablePow(
   challenge: string,
-  jsonData: any,
   opts: StablePowOpts,
 ): Promise<StablePoWResult> {
   const hasher = await createSHA256();
   const encoder = new TextEncoder();
 
   // 1. Pre-encode the static part of your data
-  const jsonString = `${JSON.stringify(jsonData)}.${challenge}`;
   const nonces: StablePoWResult['nonces'] = [];
   let hashes = 0;
 
   for (let i = 0; i < opts.c; i++) {
-    const prefix = encoder.encode(`${jsonString}${i}`);
+    const prefix = encoder.encode(`${challenge}${i}`);
 
     // 2. Create a buffer: [prefix bytes] + [space for nonce string]
     // We reserve 12 bytes for the nonce (enough for a large integer)
@@ -111,18 +108,16 @@ export async function solveStablePow(
       if (nonce % 50_000 === 0) await new Promise((r) => setTimeout(r, 0));
     }
   }
-  return { challenge, data: jsonData, debug: { hashes }, nonces };
+  return { challenge, debug: { hashes }, nonces };
 }
 
 export function verifyStablePow(result: StablePoWResult, opts: StablePowOpts): boolean {
-  const jsonString = `${JSON.stringify(result.data)}.${result.challenge}`;
-
   if (result.nonces.length !== opts.c) {
     return false;
   }
 
   for (let i = 0; i < opts.c; i++) {
-    const digest = hash('sha256', `${jsonString}${i}${result.nonces[i]}`, 'buffer');
+    const digest = hash('sha256', `${result.challenge}${i}${result.nonces[i]}`, 'buffer');
     if (!checkLeadingZeros(digest, opts.d)) {
       return false;
     }

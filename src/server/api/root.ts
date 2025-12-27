@@ -12,7 +12,6 @@ export const trpcRouter = router({
     .input(
       z.object({
         pow: z.object({ challenge: z.string(), nonces: z.array(z.number()) }),
-        request: z.any(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -25,7 +24,6 @@ export const trpcRouter = router({
         !verifyStablePow(
           {
             challenge: input.pow.challenge,
-            data: input.request,
             nonces: input.pow.nonces,
           },
           challenge,
@@ -34,7 +32,7 @@ export const trpcRouter = router({
         throw new Error('❌ Invalid PoW');
       }
 
-      return '✅ Valid\n' + JSON.stringify(input.request, null, 2);
+      return '✅ Valid';
     }),
 });
 

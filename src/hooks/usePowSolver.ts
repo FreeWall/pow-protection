@@ -14,7 +14,7 @@ export function usePowWorker() {
   }, []);
 
   const solvePoW = useCallback(
-    (challenge: string, data: any, opts: StablePowOpts): Promise<StablePoWResult> => {
+    (challenge: string, opts: StablePowOpts): Promise<StablePoWResult> => {
       return new Promise((resolve, reject) => {
         if (!workerRef.current) {
           return reject(new Error('Worker not initialized'));
@@ -30,7 +30,7 @@ export function usePowWorker() {
         };
 
         workerRef.current.addEventListener('message', listener);
-        workerRef.current.postMessage({ id: messageId, challenge, data, opts });
+        workerRef.current.postMessage({ id: messageId, challenge, opts });
       });
     },
     [],

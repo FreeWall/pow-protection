@@ -14,16 +14,8 @@ import {
 import { TextArea } from '@/components/ui/TextArea';
 import { usePowWorker } from '@/hooks/usePowSolver';
 import { Challenge, StablePowOpts, parseChallenge } from '@/utils/pow';
-import { tryCatch } from '@/utils/promises';
 import { trpc } from '@/utils/trpc';
 import { cn } from '@/utils/utils';
-
-const defaultData = {
-  send: 'bitcoin',
-  receive: 'litecoin',
-  sendStringAmount: '0.001',
-  receiveStringAmount: '0.5',
-};
 
 export default function Index() {
   const challengeMutation = trpc.challenge.useMutation();
@@ -32,16 +24,13 @@ export default function Index() {
 
   const form = useForm({
     onSubmit: async ({ value }) => {
-      const data = tryCatch(() => JSON.parse(value.data))[1] ?? value.data;
       powMutation.mutate({
         challenge: value.challenge,
-        data,
         opts: { d: Number(value.difficulty), c: Number(value.count) },
       });
       requestMutation.reset();
     },
     defaultValues: {
-      data: JSON.stringify(defaultData, null, 2),
       challenge: '',
       difficulty: '',
       count: '',
@@ -55,17 +44,9 @@ export default function Index() {
   );
 
   const powMutation = useMutation({
-    mutationFn: async ({
-      challenge,
-      data,
-      opts,
-    }: {
-      challenge: string;
-      data: any;
-      opts: StablePowOpts;
-    }) => {
+    mutationFn: async ({ challenge, opts }: { challenge: string; opts: StablePowOpts }) => {
       const startTime = performance.now();
-      const result = await solvePoW(challenge, data, opts);
+      const result = await solvePoW(challenge, opts);
       const endTime = performance.now();
 
       return {
@@ -81,7 +62,6 @@ export default function Index() {
     }
 
     form.reset({
-      data: form.getFieldValue('data'),
       challenge: challengeMutation.data,
       difficulty: String(challengeParsed.d),
       count: String(challengeParsed.c),
@@ -95,7 +75,7 @@ export default function Index() {
         <div className="mb-6 space-y-6">
           <div>
             <div className="mb-2 text-sm">Raw</div>
-            <pre className="mb-2 h-[66px] w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
+            <pre className="mb-2 min-h-[66px] w-full rounded-md bg-gray-100 p-2 text-xs break-all whitespace-pre-wrap">
               {challengeMutation.data}
             </pre>
           </div>
@@ -144,18 +124,6 @@ export default function Index() {
                   <div className="mb-2 text-sm">Challenge</div>
                   <TextArea
                     className="field-sizing-content min-h-[66px] w-full resize-none overflow-hidden font-mono text-xs"
-                    value={field.state.value}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                  />
-                </div>
-              )}
-            </form.Field>
-            <form.Field name="data">
-              {(field) => (
-                <div>
-                  <div className="mb-2 text-sm">Data</div>
-                  <TextArea
-                    className="field-sizing-content w-full resize-none text-xs"
                     value={field.state.value}
                     onChange={(event) => field.handleChange(event.target.value)}
                   />
@@ -251,12 +219,6 @@ export default function Index() {
                 {JSON.stringify(powMutation.data.result.nonces)}
               </pre>
             </div>
-            <div>
-              <div className="mb-2 text-sm">Body</div>
-              <pre className="w-full rounded-md bg-gray-100 p-2 text-xs">
-                {JSON.stringify(powMutation.data.result.data, null, 2)}
-              </pre>
-            </div>
             <div className="flex items-center gap-4">
               <Button
                 type="submit"
@@ -267,7 +229,6 @@ export default function Index() {
                       challenge: powMutation.data.result.challenge,
                       nonces: powMutation.data.result.nonces,
                     },
-                    request: powMutation.data.result.data,
                   });
                 }}
               >
